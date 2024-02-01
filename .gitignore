@@ -3,8 +3,6 @@
 *.vpj
 *.o
 *.vpwhistu
-server
-client
 .vscode/
 *.pdf
 *.docx
