@@ -8,10 +8,10 @@
 *.docx
 DIr/
 Dir2/
-server/build
-server/bin
-client/bin
-client/build
+server/build/
+server/bin/
+client/bin/
+client/build/
 *.txt
 *.lnk
 *.t
