@@ -11,3 +11,7 @@ build/client.o: src/client.cpp
 
 clean:
 	rm -f build/*.o bin/client 
+	
+init:
+	mkdir build/
+	mkdir bin/

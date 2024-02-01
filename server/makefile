@@ -11,3 +11,7 @@ build/server.o: src/server.cpp
 
 clean:
 	rm -f build/*.o bin/server 
+	
+init:
+	mkdir build/
+	mkdir bin/
