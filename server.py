@@ -18,7 +18,7 @@ def recv_command(s):
     return command, command_packet_parts[1:len(command_packet_parts)]
 
 def send_response(s : socket, code : ResponseCodes, args : []):
-    message = str(code.value) + '&'.join(args)
+    message = str(code.value) + '&' + '&'.join(args)
     s.send(len(message).to_bytes(4, 'big'))
     s.sendall(bytes(message, encoding='utf8'))
 

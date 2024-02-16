@@ -30,9 +30,14 @@ print("Enter your name:")
 name = input()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    #s.connect((HOST, PORT))
+    s.connect((HOST, PORT))
     # отправить HI
     # обработать ответ
+
+    send_command(s, Commands.HI, [name])
+    code, args = recv_response(s)
+
+    print("HI code " + str(code))
 
     exit = 0
 
@@ -49,4 +54,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         command = get_code(splitted_input[0])
         send_command(s, command, splitted_input[1:len(splitted_input)])
         ret_code,ret_args = recv_response(s)
-        print(ret_code,ret_args)
+        print("Code: " + str(code))
+        print(ret_args)
