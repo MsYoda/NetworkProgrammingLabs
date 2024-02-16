@@ -10,6 +10,11 @@ def send_command(s : socket, command : Commands, args : []):
     s.send(len(message).to_bytes(4, 'big'))
     s.sendall(message)
 
+def recv_response(s : socket) -> []:
+    response_len = int.from_bytes(s.recv(4), 'big')
+    response_parts = str(s.recv(response_len), 'utf8').split('&')
+    return response_parts
+
 HOST = "127.0.0.1"
 PORT = 65432
 
@@ -19,5 +24,6 @@ name = input()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
-    send_command(s, Commands.QUIT, [name])
-    
+    send_command(s, Commands.ECHO, [name])
+    t = recv_response(s)
+    print(t)
