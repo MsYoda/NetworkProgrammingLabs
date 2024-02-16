@@ -8,6 +8,7 @@ class Commands(enum.Enum):
     UPLOAD = 4       # args: file_name file_size(скрытый)
     DOWNLOAD = 5     # args: file_name
     LIST = 6         # args: no
+    NOTCOMMAND = 7
 
 class ResponseCodes(enum.Enum):
     SUCCESS = 200
