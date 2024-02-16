@@ -6,6 +6,14 @@ PORT = 65432
 
 print("Hello! It a BSUIR network file manager server")
 
+def recv_command(s):
+    command_len = int.from_bytes(conn.recv(4), 'big')
+    command_bytes = conn.recv(command_len)
+    command = command_bytes[0]
+
+    command_packet_parts = str(command_bytes, 'utf8').split('&')
+    return command, command_packet_parts[1:len(command_packet_parts)]
+
 
 # Создание сокета и отправка имени серверу
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -15,9 +23,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     with conn:
         print(f"Connected by {addr}")
         while True:
-           command_len = int.from_bytes(conn.recv(4), 'big')
-           print(command_len)
-           cc = str(conn.recv(command_len), 'utf8').split(' ')
-           break
+            command, args = recv_command(s)
+            
+            break
 
     
