@@ -1,6 +1,7 @@
 import socket
 import shlex
 import os
+import time
 
 from commands import Commands
 from commands import ResponseCodes
@@ -49,6 +50,25 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     code, args = recv_response(s)
 
     print("HI code " + str(code))
+    if int(recv_response[0]) == ResponseCodes.UNFINISHED_UP:
+        print ("Found unfinished upload")
+
+        f_name = "client_dir/" + args[0]
+        bytes_have = int(args[1])
+
+        with open(f_name, "rb") as file:
+            file.seek(bytes_have)
+            buffer_size = 64 * 1024
+            while True:
+                data = file.read(buffer_size)
+                if len(data) == 0: break
+                s.send(data)
+
+
+    if int(recv_response[0]) == ResponseCodes.UNFINISHED_DOWN:
+        print ("Found unfinished download")
+
+
 
     exit = 0
 
@@ -88,6 +108,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     data = file.read(buffer_size)
                     if len(data) == 0: break
                     s.send(data)
+                    time.sleep(3)
 
         # DOWNLOAD
         if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
