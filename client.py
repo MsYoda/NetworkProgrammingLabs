@@ -50,7 +50,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     code, args = recv_response(s)
 
     print("HI code " + str(code))
-    if int(recv_response[0]) == ResponseCodes.UNFINISHED_UP:
+    if code == ResponseCodes.UNFINISHED_UP.value:
         print ("Found unfinished upload")
 
         f_name = "client_dir/" + args[0]
@@ -63,9 +63,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 data = file.read(buffer_size)
                 if len(data) == 0: break
                 s.send(data)
+                time.sleep(1)
+                print("Second send")
 
 
-    if int(recv_response[0]) == ResponseCodes.UNFINISHED_DOWN:
+    if code == ResponseCodes.UNFINISHED_DOWN.value:
         print ("Found unfinished download")
 
 
@@ -86,7 +88,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         f_size: int
         if command == Commands.UPLOAD:
-            splitted_input[1] = "client_dir/" + splitted_input[1]
+            #splitted_input[1] = "client_dir/" + splitted_input[1]
             f_size = os.path.getsize(splitted_input[1])
             print ("file size: " + str(f_size))
             splitted_input.append(str(f_size))
@@ -102,13 +104,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         # UPLOAD
         if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS.value:
-            with open(splitted_input[1], "rb") as file:
+            with open("client_dir/" + splitted_input[1], "rb") as file:
                 buffer_size = 64 * 1024
                 while True:
                     data = file.read(buffer_size)
                     if len(data) == 0: break
                     s.send(data)
                     time.sleep(3)
+                    print("Sended")
 
         # DOWNLOAD
         if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
