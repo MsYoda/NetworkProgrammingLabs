@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 
 import socket
 
@@ -24,6 +25,9 @@ def send_response(s : socket, code : ResponseCodes, args : []):
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     username = ""
+    filename = ""
+    file_size = 0
+    proccesed_bytes = 0
 
     s.bind((HOST, PORT))
     s.listen()
@@ -45,9 +49,48 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 if command == Commands.TIME.value:
                     now = datetime.now().time()
                     send_response(conn, ResponseCodes.SUCCESS, [str(now.hour), str(now.minute), str(now.second)])
+                    
                 if command == Commands.QUIT.value:
                     send_response(conn, ResponseCodes.SUCCESS, [])
                     break
+
+                if command == Commands.LIST.value:
+                    files = []
+                    for file in os.listdir():
+                        files.append(file)
+                    send_response(conn, ResponseCodes.SUCCESS, files)
+
+                if command == Commands.DOWNLOAD.value:
+                    filename = args[0]
+                    f_size = os.path.getsize(filename)
+                    with open(filename, "rb") as file:
+                        buffer_size = 64 * 1024
+                        send_response(conn, ResponseCodes.SUCCESS, [str(f_size), str(buffer_size)])
+                        while True:
+                            data = file.read(buffer_size)
+                            if len(data) == 0: break
+                            conn.send(data)
+
+                if command == Commands.UPLOAD.value:
+                    filename = args[0]
+                    f_size = args[1]
+                    with open(filename, 'wb') as file:
+                        buffer_size = 64 * 1024
+                        proccesed_bytes = 0
+                        send_response(conn, ResponseCodes.SUCCESS, [])
+                        while proccesed_bytes < f_size:
+                            data = conn.recv(buffer_size)
+                            proccesed_bytes = proccesed_bytes + len(data)
+                            file.write(data)
+
+
+
+
+
+
+                       
+                    
+
                 
 
             
