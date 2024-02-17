@@ -75,7 +75,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print("Code: " + str(code))
         print(ret_args)
 
-        if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS:
+        if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS.value:
             with open(splitted_input[1], "rb") as file:
                 buffer_size = 64 * 1024
                 while True:

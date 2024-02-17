@@ -72,8 +72,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             conn.send(data)
 
                 if command == Commands.UPLOAD.value:
-                    filename = args[0]
-                    f_size = args[1]
+                    filename = 'server_files/' + args[0]
+                    f_size = int(args[1])
                     with open(filename, 'wb') as file:
                         buffer_size = 64 * 1024
                         proccesed_bytes = 0
