@@ -66,15 +66,21 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         f_size: int
         if command == Commands.UPLOAD:
+            splitted_input[1] = "client_dir/" + splitted_input[1]
             f_size = os.path.getsize(splitted_input[1])
             print ("file size: " + str(f_size))
             splitted_input.append(str(f_size))
+
+        if command == Commands.DOWNLOAD:
+            print ("Started download")
+
 
         send_command(s, command, splitted_input[1:len(splitted_input)])
         ret_code,ret_args = recv_response(s)
         print("Code: " + str(code))
         print(ret_args)
 
+        # UPLOAD
         if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS.value:
             with open(splitted_input[1], "rb") as file:
                 buffer_size = 64 * 1024
@@ -82,3 +88,17 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     data = file.read(buffer_size)
                     if len(data) == 0: break
                     s.send(data)
+
+        # DOWNLOAD
+        if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
+            filename = splitted_input[1]
+            f_size = int(ret_args[0])
+            f_buff = int(ret_args[1])
+
+            with open(filename, 'wb') as file:
+                # buffer_size = 64 * 1024
+                proccesed_bytes = 0
+                while proccesed_bytes < f_size:
+                    data = s.recv(f_buff)
+                    proccesed_bytes = proccesed_bytes + len(data)
+                    file.write(data)
