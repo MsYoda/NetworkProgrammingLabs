@@ -1,7 +1,9 @@
 import socket
 import shlex
+import os
 
 from commands import Commands
+from commands import ResponseCodes
 
 def get_bytes_of_command(command : Commands, args : []) -> bytes:
     return int(command.value).to_bytes(1, 'big') + bytes('&' + '&'.join(args), encoding='utf8')
@@ -17,8 +19,20 @@ def recv_response(s : socket):
     return int(response_parts[0]), response_parts[1:len(response_parts)]
 
 def get_code(command : str) -> Commands:
-    if command == "ECHO":
+    if command == 'HI':
+        return Commands.HI
+    if command == 'ECHO':
         return Commands.ECHO
+    if command == 'QUIT':
+        return Commands.QUIT
+    if command == 'TIME':
+        return Commands.TIME
+    if command == 'UPLOAD':
+        return Commands.UPLOAD
+    if command == 'DOWNLOAD':
+        return Commands.DOWNLOAD
+    if command == 'LIST':
+        return Commands.LIST
          
     return Commands.NOTCOMMAND
 
@@ -31,9 +45,6 @@ name = input()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
-    # отправить HI
-    # обработать ответ
-
     send_command(s, Commands.HI, [name])
     code, args = recv_response(s)
 
@@ -52,7 +63,18 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print (splitted_input)
 
         command = get_code(splitted_input[0])
+
+        f_size: int
+        if command == Commands.UPLOAD:
+            f_size = os.path.getsize(splitted_input[1])
+            print ("file size: " + str(f_size))
+            splitted_input.append(str(f_size))
+
         send_command(s, command, splitted_input[1:len(splitted_input)])
         ret_code,ret_args = recv_response(s)
         print("Code: " + str(code))
         print(ret_args)
+
+        if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS:
+            
+            socket.send
