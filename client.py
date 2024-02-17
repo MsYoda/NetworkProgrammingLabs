@@ -91,7 +91,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         # DOWNLOAD
         if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
-            filename = splitted_input[1]
+            filename = 'client_dir/' + splitted_input[1]
             f_size = int(ret_args[0])
             f_buff = int(ret_args[1])
 

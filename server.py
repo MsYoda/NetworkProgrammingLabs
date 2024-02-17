@@ -56,12 +56,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 if command == Commands.LIST.value:
                     files = []
-                    for file in os.listdir():
+                    for file in os.listdir('server_files/'):
                         files.append(file)
                     send_response(conn, ResponseCodes.SUCCESS, files)
 
                 if command == Commands.DOWNLOAD.value:
-                    filename = args[0]
+                    filename = 'server_files/' + args[0]
                     f_size = os.path.getsize(filename)
                     with open(filename, "rb") as file:
                         buffer_size = 64 * 1024
