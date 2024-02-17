@@ -75,7 +75,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         f_buff = int(args[2])
         curr_f_size = os.path.getsize(f_name)
 
-        send_command(s, Commands.DOWNLOAD, str(curr_f_size))
+        send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
+
+        # Здесь сделать проверку curr_f_size == f_size
+
+
         with open(f_name, 'ab') as file:
             # buffer_size = 64 * 1024
             proccesed_bytes = curr_f_size
@@ -138,3 +142,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     data = s.recv(f_buff)
                     proccesed_bytes = proccesed_bytes + len(data)
                     file.write(data)
+                    time.sleep(1)
+                    print("recv in downlaod")

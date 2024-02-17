@@ -70,6 +70,25 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 isUpload = False
                             except:
                                 print("File dont UPLOADed with success")
+                        else:
+                            send_response(conn, ResponseCodes.UNFINISHED_DOWN, [filename, str(os.path.getsize('server_files/' + filename)), str(64 * 1024)])
+                            code, args = recv_command(conn)
+                            proccesed_bytes = int(args[0])
+                            if proccesed_bytes == file_size:
+                                filename = ''
+                                file_size = 0
+                                continue
+                            try:
+                                with open('server_files/' + filename, "rb") as file:
+                                    file.seek(proccesed_bytes)
+                                    buffer_size = 64 * 1024
+                                    while True:
+                                        data = file.read(buffer_size)
+                                        if len(data) == 0: break
+                                        conn.send(data)
+                                        print("Server downlaod send")
+                            except e:
+                                print("Downlaod error")
 
                     else:
                         username = args[0]
@@ -94,17 +113,19 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 if command == Commands.DOWNLOAD.value:
                     filename = args[0]
-                    f_size = os.path.getsize(filename)
+                    file_size = os.path.getsize(filename)
                     proccesed_bytes = 0
-                    with open('server_files/' + filename, "rb") as file:
-                        buffer_size = 64 * 1024
-                        send_response(conn, ResponseCodes.SUCCESS, [str(f_size), str(buffer_size)])
-                        while True:
-                            data = file.read(buffer_size)
-                            if len(data) == 0: break
-                            conn.send(data)
-                    filename = ''
-                    file_size = 0
+                    try:
+                        with open('server_files/' + filename, "rb") as file:
+                            buffer_size = 64 * 1024
+                            send_response(conn, ResponseCodes.SUCCESS, [str(file_size), str(buffer_size)])
+                            while True:
+                                data = file.read(buffer_size)
+                                if len(data) == 0: break
+                                sended = conn.send(data)
+                                if (sended == 0): raise Exception
+                    except:
+                        print("Downlaod error")
 
                 if command == Commands.UPLOAD.value:
                     filename = args[0]
