@@ -12,7 +12,8 @@ class Commands(enum.Enum):
 
 class ResponseCodes(enum.Enum):
     SUCCESS = 200
-    UNFINISHED = 201   # нужны доп. действия
+    UNFINISHED_UP = 201   # нужны доп. действия
+    UNFINISHED_DOWN = 202
     ERROR = 400
 
 
