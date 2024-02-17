@@ -77,9 +77,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
 
-        # Здесь сделать проверку curr_f_size == f_size
-
-
         with open(f_name, 'ab') as file:
             # buffer_size = 64 * 1024
             proccesed_bytes = curr_f_size
@@ -87,6 +84,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 data = s.recv(f_buff)
                 proccesed_bytes = proccesed_bytes + len(data)
                 file.write(data)
+                time.sleep(0.5)
+                print("Second download")
+            send_command(s, Commands.DOWNLOAD, [])
 
     exit = 0
 
@@ -144,3 +144,4 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     file.write(data)
                     time.sleep(1)
                     print("recv in downlaod")
+                send_command(s, Commands.DOWNLOAD, [])

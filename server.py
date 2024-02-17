@@ -74,10 +74,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             send_response(conn, ResponseCodes.UNFINISHED_DOWN, [filename, str(os.path.getsize('server_files/' + filename)), str(64 * 1024)])
                             code, args = recv_command(conn)
                             proccesed_bytes = int(args[0])
-                            if proccesed_bytes == file_size:
-                                filename = ''
-                                file_size = 0
-                                continue
                             try:
                                 with open('server_files/' + filename, "rb") as file:
                                     file.seek(proccesed_bytes)
@@ -87,7 +83,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                         if len(data) == 0: break
                                         conn.send(data)
                                         print("Server downlaod send")
-                            except e:
+                                recv_command(conn)
+                                filename = ''
+                                file_size = 0
+                            except:
                                 print("Downlaod error")
 
                     else:
@@ -123,7 +122,13 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 data = file.read(buffer_size)
                                 if len(data) == 0: break
                                 sended = conn.send(data)
-                                if (sended == 0): raise Exception
+                                if (sended == 0): 
+                                    file.close()
+                                    raise Exception
+                            recv_command(conn)
+                            filename = ''
+                            file_size = 0
+
                     except:
                         print("Downlaod error")
 
