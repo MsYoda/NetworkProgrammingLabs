@@ -70,7 +70,19 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     if code == ResponseCodes.UNFINISHED_DOWN.value:
         print ("Found unfinished download")
 
+        f_name = "client_dir/" + args[0]
+        f_size = int(args[1])
+        f_buff = int(args[2])
+        curr_f_size = os.path.getsize(f_name)
 
+        send_command(s, Commands.DOWNLOAD, str(curr_f_size))
+        with open(f_name, 'ab') as file:
+            # buffer_size = 64 * 1024
+            proccesed_bytes = curr_f_size
+            while proccesed_bytes < f_size:
+                data = s.recv(f_buff)
+                proccesed_bytes = proccesed_bytes + len(data)
+                file.write(data)
 
     exit = 0
 
