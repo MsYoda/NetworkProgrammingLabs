@@ -20,8 +20,8 @@ def recv_response(s : socket):
     return int(response_parts[0]), response_parts[1:len(response_parts)]
 
 def get_code(command : str) -> Commands:
-    if command == 'HI':
-        return Commands.HI
+    # if command == 'HI':
+    #     return Commands.HI
     if command == 'ECHO':
         return Commands.ECHO
     if command == 'QUIT':
@@ -37,111 +37,173 @@ def get_code(command : str) -> Commands:
          
     return Commands.NOTCOMMAND
 
+
 HOST = "127.0.0.1"
 PORT = 65432
 
+
 print("Hello! It a BSUIR network file manager")
-print("Enter your name:")
-name = input()
+name = ''
+while name == '':
+    print("Enter your name:", end = ' ')
+    name = input()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect((HOST, PORT))
-    send_command(s, Commands.HI, [name])
-    code, args = recv_response(s)
+    try:
+        s.connect((HOST, PORT))
+    
+        # ------- SEND HI -------
+        send_command(s, Commands.HI, [name])   
+        code, args = recv_response(s)
 
-    print("HI code " + str(code))
-    if code == ResponseCodes.UNFINISHED_UP.value:
-        print ("Found unfinished upload")
+        # ------- UNFINISHED UPLOAD -------
+        # print("HI code " + str(code))   
+        if code == ResponseCodes.UNFINISHED_UP.value:
+            print ("Found unfinished upload")
 
-        f_name = "client_dir/" + args[0]
-        bytes_have = int(args[1])
+            f_name = "client_dir/" + args[0]
+            bytes_have = int(args[1])
 
-        with open(f_name, "rb") as file:
-            file.seek(bytes_have)
-            buffer_size = 64 * 1024
-            while True:
-                data = file.read(buffer_size)
-                if len(data) == 0: break
-                s.send(data)
-                time.sleep(1)
-                print("Second send")
-
-
-    if code == ResponseCodes.UNFINISHED_DOWN.value:
-        print ("Found unfinished download")
-
-        f_name = "client_dir/" + args[0]
-        f_size = int(args[1])
-        f_buff = int(args[2])
-        curr_f_size = os.path.getsize(f_name)
-
-        send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
-
-        with open(f_name, 'ab') as file:
-            # buffer_size = 64 * 1024
-            proccesed_bytes = curr_f_size
-            while proccesed_bytes < f_size:
-                data = s.recv(f_buff)
-                proccesed_bytes = proccesed_bytes + len(data)
-                file.write(data)
-                time.sleep(0.5)
-                print("Second download")
-            send_command(s, Commands.DOWNLOAD, [])
-
-    exit = 0
-
-    while not exit:
-        print("Enter comand:")
-        user_input = input()
-        if user_input == 'QUIT':
-            # отправить QUIT
-            exit = 1
-
-        splitted_input = shlex.split(user_input)
-        print (splitted_input)
-
-        command = get_code(splitted_input[0])
-
-        f_size: int
-        if command == Commands.UPLOAD:
-            #splitted_input[1] = "client_dir/" + splitted_input[1]
-            f_size = os.path.getsize(splitted_input[1])
-            print ("file size: " + str(f_size))
-            splitted_input.append(str(f_size))
-
-        if command == Commands.DOWNLOAD:
-            print ("Started download")
-
-
-        send_command(s, command, splitted_input[1:len(splitted_input)])
-        ret_code,ret_args = recv_response(s)
-        print("Code: " + str(code))
-        print(ret_args)
-
-        # UPLOAD
-        if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS.value:
-            with open("client_dir/" + splitted_input[1], "rb") as file:
+            with open(f_name, "rb") as file:
+                file.seek(bytes_have)
                 buffer_size = 64 * 1024
                 while True:
                     data = file.read(buffer_size)
                     if len(data) == 0: break
                     s.send(data)
-                    time.sleep(3)
-                    print("Sended")
+                    time.sleep(1)
+                    print("Second send")
 
-        # DOWNLOAD
-        if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
-            filename = 'client_dir/' + splitted_input[1]
-            f_size = int(ret_args[0])
-            f_buff = int(ret_args[1])
+        # ------- UNFINISHED DOWNLOAD -------
+        if code == ResponseCodes.UNFINISHED_DOWN.value:
+            print ("Found unfinished download")
 
-            with open(filename, 'wb') as file:
+            f_name = "client_dir/" + args[0]
+            f_size = int(args[1])
+            f_buff = int(args[2])
+            curr_f_size = os.path.getsize(f_name)
+
+            send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
+
+            with open(f_name, 'ab') as file:
                 # buffer_size = 64 * 1024
-                proccesed_bytes = 0
+                proccesed_bytes = curr_f_size
                 while proccesed_bytes < f_size:
                     data = s.recv(f_buff)
                     proccesed_bytes = proccesed_bytes + len(data)
                     file.write(data)
-                    time.sleep(1)
-                    print("recv in downlaod")
+                    time.sleep(0.5)
+                    print("Second download")
                 send_command(s, Commands.DOWNLOAD, [])
+        exit = 0
+        
+        if code != ResponseCodes.SUCCESS.value:
+            print ("SERVER ERRROR")
+            exit = 1
+
+    except socket.error as err:
+        print(f'Server Connection Error: {err}')
+        exit = 1
+
+    while not exit:
+        print(">", end=' ')
+        user_input = input()
+        if user_input == '':
+            continue
+
+        splitted_input = shlex.split(user_input)
+        # print (splitted_input)
+        command = get_code(splitted_input[0])
+        if command == Commands.NOTCOMMAND:
+            print ("Incorrect Command Input")
+            continue
+
+        try: 
+            # --- QUIT ---
+            if command == Commands.QUIT:
+                if len(splitted_input) > 1:
+                    print("Wrong Arguments")
+                    continue
+                send_command(s, Commands.QUIT, [])
+                ret_code,ret_args = recv_response(s)
+                break
+
+            # --- ECHO ---
+            if command == Commands.ECHO:
+                if len(splitted_input) < 2:
+                    print("Wrong Arguments")
+                    continue
+                send_command(s, command, [user_input[5:]])
+                ret_code,ret_args = recv_response(s)
+                print(ret_args[0])
+                continue ###
+            
+            # --- TIME ---
+            if command == Commands.TIME:
+                if len(splitted_input) > 1:
+                    print("Wrong Arguments")
+                    continue
+                send_command(s, command, [])
+                ret_code,ret_args = recv_response(s)
+                print('Current Server Time is ' + ':'.join(ret_args))
+                continue ###
+
+            # --- LIST ---
+            if command == Commands.LIST:
+                if len(splitted_input) > 1:
+                    print("Wrong Arguments")
+                    continue
+                send_command(s, command, [])
+                ret_code,ret_args = recv_response(s)
+                print(ret_args)
+                continue ###
+
+            f_size: int
+            if command == Commands.UPLOAD:
+                #splitted_input[1] = "client_dir/" + splitted_input[1]
+                f_size = os.path.getsize(splitted_input[1])
+                print ("file size: " + str(f_size))
+                splitted_input.append(str(f_size))
+
+            if command == Commands.DOWNLOAD:
+                print ("Started download")
+
+
+            send_command(s, command, splitted_input[1:len(splitted_input)])
+            ret_code,ret_args = recv_response(s)
+            print("Code: " + str(code))
+            print(ret_args)
+
+            # UPLOAD
+            if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS.value:
+                with open("client_dir/" + splitted_input[1], "rb") as file:
+                    buffer_size = 64 * 1024
+                    while True:
+                        data = file.read(buffer_size)
+                        if len(data) == 0: break
+                        s.send(data)
+                        time.sleep(3)
+                        print("Sended")
+
+            # DOWNLOAD
+            if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
+                filename = 'client_dir/' + splitted_input[1]
+                f_size = int(ret_args[0])
+                f_buff = int(ret_args[1])
+
+                with open(filename, 'wb') as file:
+                    # buffer_size = 64 * 1024
+                    proccesed_bytes = 0
+                    while proccesed_bytes < f_size:
+                        data = s.recv(f_buff)
+                        proccesed_bytes = proccesed_bytes + len(data)
+                        file.write(data)
+                        time.sleep(1)
+                        print("recv in downlaod")
+                    send_command(s, Commands.DOWNLOAD, [])
+        
+        except socket.error as err:
+            print(f'Error: {err}')
+            exit = 1
+        
+    # print ("File manager is closed")
