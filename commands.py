@@ -9,6 +9,7 @@ class Commands(enum.Enum):
     DOWNLOAD = 5     # args: file_name
     LIST = 6         # args: no
     NOTCOMMAND = 7
+    CLIENTERROR = 8
 
 class ResponseCodes(enum.Enum):
     SUCCESS = 200

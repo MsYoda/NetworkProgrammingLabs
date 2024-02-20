@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 
 import socket
+import time
 
 from commands import Commands, ResponseCodes
 
@@ -41,11 +42,11 @@ def send_file(s, filename, filesize, offset = 0):
             sended = conn.send(data)
             if sended == 0: break
             proccesed_bytes = proccesed_bytes + sended
-
+            time.sleep(0.2)
             percentage = (proccesed_bytes / file_size) * 100
             print(f'{percentage:.2f}%')
 
-        recv_command(conn)
+    recv_command(conn)
 
 def recv_file(s, filename, file_size, offset = 0):
     mode = 'wb'
@@ -70,6 +71,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     filename = ""
     isUpload = False
     file_size = 0
+
+    def clear_state():
+        global filename
+        global isUpload
+        global file_size
+
+        filename = ""
+        isUpload = False
+        file_size = 0
 
     s.bind((HOST, PORT))
     s.listen()
@@ -97,63 +107,69 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     if args[0] == username and file_size != 0:
                         if isUpload:
                             try:
+                                print(f'{username} will be requested for retry upload')
                                 proccesed_bytes = os.path.getsize('server_files/' + filename)
                                 send_response(conn, ResponseCodes.UNFINISHED_UP, [filename, str(proccesed_bytes)])
+                                
+                                local_command, local_args = recv_command(conn)
+                                if (local_command == Commands.CLIENTERROR.value):
+                                    print(f'{username} responsed with CLIENTERROR command')
+                                    clear_state()
+                                    continue
 
                                 recv_file(conn, 'server_files/' + filename, file_size, proccesed_bytes)
 
-                                filename = ''
-                                file_size = 0
-                                isUpload = False
+                                clear_state()
                             except (FileNotFoundError, FileExistsError) as e:
                                 print(f'{username} caused {e} when retry to upload {filename}')
                                 send_response(conn, ResponseCodes.ERROR, [filename, 'dont exsist'])
-                                filename = ''
-                                file_size = 0
-                                isUpload = False
+                                clear_state()
                             except (ValueError, IndexError) as e:
                                 print(f'{username} caused {e} when retry to upload {filename}')
                                 send_response(conn, ResponseCodes.ERROR, ['bad arguments'])
-                                filename = ''
-                                file_size = 0
-                                isUpload = False
+                                clear_state()
                             except ConnectionError as e:
                                 print(f'{username} caused {e} when retry to upload {filename}') 
                             except Exception as e:
                                 print(f'{username} caused {e} when retry to upload {filename}') 
+                                clear_state()
                         else:
                             try:
+                                print(f'{username} will be requested for retry download')
                                 send_response(conn, ResponseCodes.UNFINISHED_DOWN, [filename, str(os.path.getsize('server_files/' + filename)), str(64 * 1024)])
-                                code, args = recv_command(conn)
-                                proccesed_bytes = int(args[0])
+
+                                local_command, local_args = recv_command(conn)
+                                if (local_command == Commands.CLIENTERROR.value):
+                                    print(f'{username} responsed with CLIENTERROR command')
+                                    clear_state()
+                                    continue
+
+                                proccesed_bytes = int(local_args[0])
 
                                 send_file(conn, 'server_files/' + filename, file_size, proccesed_bytes)
 
-                                filename = ''
-                                file_size = 0
+                                clear_state()
                             except (FileNotFoundError, FileExistsError) as e:
                                 print(f'{username} caused {e} when retry to download {filename}')
                                 send_response(conn, ResponseCodes.ERROR, [filename, 'dont exsist'])
-                                filename = ''
-                                file_size = 0
+                                clear_state()
                             except (ValueError, IndexError) as e:
                                 print(f'{username} caused {e} when retry to download {filename}')
                                 send_response(conn, ResponseCodes.ERROR, ['bad arguments'])
-                                filename = ''
-                                file_size = 0
+                                clear_state()
                             except ConnectionError as e:
                                 print(f'{username} caused {e} when retry to download {filename}') 
                             except Exception as e:
                                 print(f'{username} caused {e} when retry to download {filename}') 
+                                clear_state()
                     else:
                         try:
                             username = args[0]
-                            file_size = 0
-                            filename = ''
                             send_response(conn, ResponseCodes.SUCCESS, []) 
                         except IndexError as e:
                             print(f'{username} caused {e} when retry to download {filename}')
                             send_response(conn, ResponseCodes.ERROR, ['bad arguments'])
+                        finally:
                             file_size = 0
                             filename = ''
 
@@ -185,6 +201,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 if command == Commands.DOWNLOAD.value:
                     try:
+                        isUpload = False
+
                         filename = args[0]
                         file_size = os.path.getsize('server_files/' + filename) #####################################################################################
 
@@ -192,49 +210,45 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                         send_response(conn, ResponseCodes.SUCCESS, [str(file_size), str(64 * 1024)])
                         send_file(conn, 'server_files/' + filename, file_size)
-                        filename = ''
-                        file_size = 0
+
+                        print(f'Server succesfully send file to {username}')
+                        clear_state()
                     except (FileNotFoundError, FileExistsError) as e:
                         print(f'{username} caused {e} when try to download {filename}')
                         send_response(conn, ResponseCodes.ERROR, [filename, 'dont exsist'])
-                        filename = ''
-                        file_size = 0
+                        clear_state()
                     except (ValueError, IndexError) as e:
                         print(f'{username} caused {e} when try to download {filename}')
                         send_response(conn, ResponseCodes.ERROR, ['bad arguments'])
-                        filename = ''
-                        file_size = 0
+                        clear_state()
                     except ConnectionError as e:
                         print(f'{username} caused {e} when try to download {filename}') 
                     except Exception as e:
                         print(f'{username} caused {e} when try to download {filename}') 
+                        clear_state()
 
                 if command == Commands.UPLOAD.value:
                     try:
+                        isUpload = True
+
                         filename = args[0]
                         file_size = int(args[1])
-                        isUpload = True
 
                         print(f'UPLOAD {filename} from {username}')
                         
                         send_response(conn, ResponseCodes.SUCCESS, [])
                         recv_file(conn, 'server_files/' + filename, file_size)
-                        filename = ''
-                        file_size = 0
-                        isUpload = False
+                        clear_state()
                     except (FileNotFoundError, FileExistsError) as e:
                         print(f'{username} caused {e} when try to upload {filename}')
                         send_response(conn, ResponseCodes.ERROR, [filename, 'dont exsist'])
-                        filename = ''
-                        file_size = 0
-                        isUpload = False
+                        clear_state()
                     except (ValueError, IndexError) as e:
                         print(f'{username} caused {e} when try to upload {filename}')
                         send_response(conn, ResponseCodes.ERROR, ['bad arguments'])
-                        filename = ''
-                        file_size = 0
-                        isUpload = False
+                        clear_state()
                     except ConnectionError as e:
                         print(f'{username} caused {e} when try to upload {filename}') 
                     except Exception as e:
                         print(f'{username} caused {e} when try to upload {filename}') 
+                        clear_state()

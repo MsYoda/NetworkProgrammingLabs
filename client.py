@@ -58,9 +58,8 @@ def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: i
             data = s.recv(f_buff)
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
-            time.sleep(0.5)
         print('100%')
-        send_command(s, Commands.DOWNLOAD, [])  ######################### для чего?? ( я забыла ) ?????????????????????????????????????????
+    send_command(s, Commands.DOWNLOAD, [])  ######################### для чего?? ( я забыла ) ?????????????????????????????????????????
                                                 # в загрузке как-то не так ставятся проценты (я ее оборвала, но все равно показывает 100)
                                                 # но когда ее продолжила на сервере не всплыло никакой информации
                                                 # он и не докачался кстати. во второй раз докачался. в третий нет
@@ -94,26 +93,34 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             bytes_have = int(args[1])
 
             if not os.path.isfile(f_name):
-                print (f'File "{f_name}" does not exist') # обменяться сообщениями, что файла больше нет?
-                ##############################################################################################################################
-                # ору. нет больше файла - бан от сервера
-
-            upload_file(f_name, s, bytes_have)
+                print (f'Unfinished upload refused')
+                print (f'File "{f_name}" does not exist')
+                send_command(s, Commands.CLIENTERROR, [])
+            else:
+                send_command(s, Commands.UPLOAD, [])
+                upload_file(f_name, s, bytes_have)
             code = ResponseCodes.SUCCESS.value
 
         # ------- UNFINISHED DOWNLOAD -------
         if code == ResponseCodes.UNFINISHED_DOWN.value:
-            print ("Found Unfinished Download")
+            try:
+                print ("Found Unfinished Download")
 
-            f_name = "client_dir/" + args[0]
-            f_size = int(args[1])
-            f_buff = int(args[2])
-            curr_f_size = os.path.getsize(f_name)
+                f_name = "client_dir/" + args[0]
+                f_size = int(args[1])
+                f_buff = int(args[2])
+                curr_f_size = os.path.getsize(f_name)
 
-            send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
-            # то же самое. обмен сообщениями, если файла нет???????????????????????????????????????????????????????????????????????????????????
-            download_file(f_name, 'ab', curr_f_size, f_size, f_buff)
-            code = ResponseCodes.SUCCESS.value
+                send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
+                
+                download_file(f_name, 'ab', curr_f_size, f_size, f_buff)
+                code = ResponseCodes.SUCCESS.value
+            except (FileNotFoundError, FileExistsError) as e:
+                send_command(s, Commands.CLIENTERROR, [])
+                print("Unfinished download refused")
+                print (f'File "{f_name}" does not exist')
+                code = ResponseCodes.SUCCESS.value
+
 
         exit = 0
         
