@@ -2,6 +2,7 @@ import socket
 import shlex
 import os
 import time
+from datetime import datetime 
 
 from commands import Commands
 from commands import ResponseCodes
@@ -38,34 +39,38 @@ def get_code(command : str) -> Commands:
     return Commands.NOTCOMMAND
 
 def upload_file(f_name: str, s: socket, seek_offset: int):
+    time_start = time.time()
+    data_size = 0
     with open(f_name, "rb") as file:
         file.seek(seek_offset)
-        buffer_size = 64 * 1024    #### тут статический буфер, там выбирается  #####################################################################################
-        while True:                # Если два подряд разных человека то загрузка не возобновляется?
-            print(".", end='')
+        buffer_size = 64 * 1024    
+        while True:               
+            print(".", end='', flush=True)
             data = file.read(buffer_size)
             if len(data) == 0: break
             s.send(data)
-            time.sleep(0.5)
-        print('100%') 
+            data_size = data_size + len(data)
+            # time.sleep(0.5)
+        time_end = time.time()
+        print (f'100% \nAverage Upload Speed:{(data_size/(time_end - time_start)/1000):.2f}KB/sec') 
+
 
 def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: int, f_buff: int):
     with open(filename, file_mode) as file:
         #buffer_size = 64 * 1024
         # proccesed_bytes = 0
+        time_start = time.time()
+        data_size = proccesed_bytes
         while proccesed_bytes < f_size:
-            print(".", end='')
+            print(".", end='', flush=True) 
             data = s.recv(f_buff)
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
-        print('100%')
-    send_command(s, Commands.DOWNLOAD, [])  ######################### для чего?? ( я забыла ) ?????????????????????????????????????????
-                                                # в загрузке как-то не так ставятся проценты (я ее оборвала, но все равно показывает 100)
-                                                # но когда ее продолжила на сервере не всплыло никакой информации
-                                                # он и не докачался кстати. во второй раз докачался. в третий нет
-                                                # проверить бы с удалением файлов
+        time_end = time.time()
+        print (f'100% \nAverage Download Speed:{((f_size - data_size)/(time_end - time_start)/1000):.2f}KB/sec')
+    send_command(s, Commands.DOWNLOAD, []) 
 
-HOST = "127.0.0.1"
+HOST = "192.168.43.188" #"127.0.0.1"
 PORT = 65432
 client_folder = 'client_dir/'
 
@@ -120,7 +125,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 print("Unfinished download refused")
                 print (f'File "{f_name}" does not exist')
                 code = ResponseCodes.SUCCESS.value
-
 
         exit = 0
         
