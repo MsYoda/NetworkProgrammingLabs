@@ -7,6 +7,8 @@ from datetime import datetime
 from commands import Commands
 from commands import ResponseCodes
 
+TCP_KEEPALIVE = 16
+
 def get_bytes_of_command(command : Commands, args : []) -> bytes:
     return int(command.value).to_bytes(1, 'big') + bytes('&' + '&'.join(args), encoding='utf8')
 
@@ -83,6 +85,12 @@ while name == '':
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 5)  # Время ожидания перед первым keep-alive
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 5)  # Интервал между последующими keep-alive
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+
         s.connect((HOST, PORT))
     
         # ------- SEND HI -------
@@ -133,8 +141,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             exit = 1
 
     except socket.error as err:
-        print(f'Server Connection Error: {err}')
-        exit = 1
+        print(f'\nServer Connection Error: {err}')
+        exit = 1    
 
     while not exit:
         print(">", end=' ')
@@ -235,7 +243,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         
         except socket.error as err:
-            print(f'Error: {err}')
+            print(f'\nError: {err}')
             exit = 1
         
     #print ("File manager is closed")
