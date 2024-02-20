@@ -61,11 +61,12 @@ def recv_file(s, filename, file_size, offset = 0):
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
 
+username = ""
+filename = ""
+isUpload = False
+file_size = 0
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    username = ""
-    filename = ""
-    isUpload = False
-    file_size = 0
 
     def clear_state():
         global filename
@@ -81,6 +82,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     while True:
         print("Wait for client...")
         conn, addr = s.accept()
+        #conn.settimeout(5)
+        TCP_KEEPALIVE = 16
+        conn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        conn.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 5000, 5000))  
         with conn:
             print(f"Connected by {addr}")
             while True:
