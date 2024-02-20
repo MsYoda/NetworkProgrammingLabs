@@ -37,6 +37,34 @@ def get_code(command : str) -> Commands:
          
     return Commands.NOTCOMMAND
 
+def upload_file(f_name: str, s: socket, seek_offset: int):
+    with open(f_name, "rb") as file:
+        file.seek(seek_offset)
+        buffer_size = 64 * 1024    #### тут статический буфер, там выбирается  #####################################################################################
+        while True:                # Если два подряд разных человека то загрузка не возобновляется?
+            print(".", end='')
+            data = file.read(buffer_size)
+            if len(data) == 0: break
+            s.send(data)
+            time.sleep(0.5)
+        print('100%') 
+
+def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: int, f_buff: int):
+    with open(filename, file_mode) as file:
+        #buffer_size = 64 * 1024
+        # proccesed_bytes = 0
+        while proccesed_bytes < f_size:
+            print(".", end='')
+            data = s.recv(f_buff)
+            proccesed_bytes = proccesed_bytes + len(data)
+            file.write(data)
+            time.sleep(0.5)
+        print('100%')
+        send_command(s, Commands.DOWNLOAD, [])  ######################### для чего?? ( я забыла ) ?????????????????????????????????????????
+                                                # в загрузке как-то не так ставятся проценты (я ее оборвала, но все равно показывает 100)
+                                                # но когда ее продолжила на сервере не всплыло никакой информации
+                                                # он и не докачался кстати. во второй раз докачался. в третий нет
+                                                # проверить бы с удалением файлов
 
 HOST = "127.0.0.1"
 PORT = 65432
@@ -60,24 +88,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # ------- UNFINISHED UPLOAD -------
         #print("HI code " + str(code))   
         if code == ResponseCodes.UNFINISHED_UP.value:
-            print ("Found unfinished upload")
+            print ("Found Unfinished Upload")
 
-            f_name = "client_dir/" + args[0]
+            f_name = client_folder + args[0]
             bytes_have = int(args[1])
 
-            with open(f_name, "rb") as file:
-                file.seek(bytes_have)
-                buffer_size = 64 * 1024
-                while True:
-                    data = file.read(buffer_size)
-                    if len(data) == 0: break
-                    s.send(data)
-                    time.sleep(1)
-                    print("Second send")
+            if not os.path.isfile(f_name):
+                print (f'File "{f_name}" does not exist') # обменяться сообщениями, что файла больше нет?
+                ##############################################################################################################################
+                # ору. нет больше файла - бан от сервера
+
+            upload_file(f_name, s, bytes_have)
+            code = ResponseCodes.SUCCESS.value
 
         # ------- UNFINISHED DOWNLOAD -------
         if code == ResponseCodes.UNFINISHED_DOWN.value:
-            print ("Found unfinished download")
+            print ("Found Unfinished Download")
 
             f_name = "client_dir/" + args[0]
             f_size = int(args[1])
@@ -85,17 +111,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             curr_f_size = os.path.getsize(f_name)
 
             send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
+            # то же самое. обмен сообщениями, если файла нет???????????????????????????????????????????????????????????????????????????????????
+            download_file(f_name, 'ab', curr_f_size, f_size, f_buff)
+            code = ResponseCodes.SUCCESS.value
 
-            with open(f_name, 'ab') as file:
-                #buffer_size = 64 * 1024
-                proccesed_bytes = curr_f_size
-                while proccesed_bytes < f_size:
-                    data = s.recv(f_buff)
-                    proccesed_bytes = proccesed_bytes + len(data)
-                    file.write(data)
-                    time.sleep(0.5)
-                    print("Second download")
-                send_command(s, Commands.DOWNLOAD, [])
         exit = 0
         
         if code != ResponseCodes.SUCCESS.value:
@@ -176,17 +195,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 ret_code,ret_args = recv_response(s)
 
                 if ret_code == ResponseCodes.ERROR.value:
-                    print (ret_code,ret_args)
-                    continue
-                with open(client_folder + splitted_input[1], "rb") as file:
-                    buffer_size = 64 * 1024    #?????????????????????????????????????????????????????????????????????????????????????????
-                    while True:
-                        print(".", end='')
-                        data = file.read(buffer_size)
-                        if len(data) == 0: break
-                        s.send(data)
-                        time.sleep(0.5)
-                    print('100%')
+                    print(f'Error. File "{ret_args[0]}" {ret_args[1]}')
+                    continue 
+                
+                upload_file(client_folder + splitted_input[1], s, 0)
                 continue 
 
             # --- DOWNLOAD ---
@@ -208,17 +220,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 f_size = int(ret_args[0])
                 f_buff = int(ret_args[1])
 
-                with open(filename, 'wb') as file:
-                    #buffer_size = 64 * 1024
-                    proccesed_bytes = 0
-                    while proccesed_bytes < f_size:
-                        print(".", end='')
-                        data = s.recv(f_buff)
-                        proccesed_bytes = proccesed_bytes + len(data)
-                        file.write(data)
-                        time.sleep(0.5)
-                    print('100%')
-                    send_command(s, Commands.DOWNLOAD, []) #??????????????????????????????????????????????????????????????????????????/
+                download_file(filename, 'wb', 0, f_size, f_buff)
+
         
         except socket.error as err:
             print(f'Error: {err}')
