@@ -6,7 +6,7 @@ import time
 
 from commands import Commands, ResponseCodes
 
-HOST = "127.0.0.1"
+HOST = "192.168.43.188"
 PORT = 65432
 
 print("Hello! It a BSUIR network file manager server")
@@ -42,9 +42,7 @@ def send_file(s, filename, filesize, offset = 0):
             sended = conn.send(data)
             if sended == 0: break
             proccesed_bytes = proccesed_bytes + sended
-            time.sleep(0.2)
-            percentage = (proccesed_bytes / file_size) * 100
-            print(f'{percentage:.2f}%')
+            #time.sleep(0.2)
 
     recv_command(conn)
 
@@ -62,9 +60,6 @@ def recv_file(s, filename, file_size, offset = 0):
                 raise ConnectionError('connection lost')
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
-
-            percentage = (proccesed_bytes / file_size) * 100
-            print(f'{percentage:.2f}%')
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     username = ""
@@ -118,6 +113,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                     continue
 
                                 recv_file(conn, 'server_files/' + filename, file_size, proccesed_bytes)
+                                print(f'File from {username} fully uploaded')
 
                                 clear_state()
                             except (FileNotFoundError, FileExistsError) as e:
@@ -147,6 +143,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                 proccesed_bytes = int(local_args[0])
 
                                 send_file(conn, 'server_files/' + filename, file_size, proccesed_bytes)
+
+                                print(f'File to {username} fully sended')
 
                                 clear_state()
                             except (FileNotFoundError, FileExistsError) as e:
@@ -204,7 +202,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         isUpload = False
 
                         filename = args[0]
-                        file_size = os.path.getsize('server_files/' + filename) #####################################################################################
+                        file_size = os.path.getsize('server_files/' + filename)
 
                         print(f'DOWNLOAD {filename} from {username}')
 
@@ -238,6 +236,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         
                         send_response(conn, ResponseCodes.SUCCESS, [])
                         recv_file(conn, 'server_files/' + filename, file_size)
+
+                        print(f'File from {username} fully uploaded')
+
                         clear_state()
                     except (FileNotFoundError, FileExistsError) as e:
                         print(f'{username} caused {e} when try to upload {filename}')
