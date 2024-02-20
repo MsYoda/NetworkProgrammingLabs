@@ -186,7 +186,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 if command == Commands.DOWNLOAD.value:
                     try:
                         filename = args[0]
-                        file_size = os.path.getsize(filename)
+                        file_size = os.path.getsize('server_files/' + filename) #####################################################################################
 
                         print(f'DOWNLOAD {filename} from {username}')
 

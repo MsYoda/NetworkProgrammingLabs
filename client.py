@@ -20,8 +20,8 @@ def recv_response(s : socket):
     return int(response_parts[0]), response_parts[1:len(response_parts)]
 
 def get_code(command : str) -> Commands:
-    # if command == 'HI':
-    #     return Commands.HI
+    #if command == 'HI':
+    #    return Commands.HI
     if command == 'ECHO':
         return Commands.ECHO
     if command == 'QUIT':
@@ -40,6 +40,7 @@ def get_code(command : str) -> Commands:
 
 HOST = "127.0.0.1"
 PORT = 65432
+client_folder = 'client_dir/'
 
 
 print("Hello! It a BSUIR network file manager")
@@ -57,7 +58,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         code, args = recv_response(s)
 
         # ------- UNFINISHED UPLOAD -------
-        # print("HI code " + str(code))   
+        #print("HI code " + str(code))   
         if code == ResponseCodes.UNFINISHED_UP.value:
             print ("Found unfinished upload")
 
@@ -86,7 +87,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             send_command(s, Commands.DOWNLOAD, [str(curr_f_size)])
 
             with open(f_name, 'ab') as file:
-                # buffer_size = 64 * 1024
+                #buffer_size = 64 * 1024
                 proccesed_bytes = curr_f_size
                 while proccesed_bytes < f_size:
                     data = s.recv(f_buff)
@@ -112,7 +113,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             continue
 
         splitted_input = shlex.split(user_input)
-        # print (splitted_input)
+        #print (splitted_input)
         command = get_code(splitted_input[0])
         if command == Commands.NOTCOMMAND:
             print ("Incorrect Command Input")
@@ -136,7 +137,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 send_command(s, command, [user_input[5:]])
                 ret_code,ret_args = recv_response(s)
                 print(ret_args[0])
-                continue ###
+                continue 
             
             # --- TIME ---
             if command == Commands.TIME:
@@ -146,7 +147,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 send_command(s, command, [])
                 ret_code,ret_args = recv_response(s)
                 print('Current Server Time is ' + ':'.join(ret_args))
-                continue ###
+                continue 
 
             # --- LIST ---
             if command == Commands.LIST:
@@ -155,55 +156,72 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     continue
                 send_command(s, command, [])
                 ret_code,ret_args = recv_response(s)
-                print(ret_args)
-                continue ###
+                for arg in ret_args:
+                    print(f"- {arg}")
+                continue
 
-            f_size: int
+            # --- UPLOAD ---
             if command == Commands.UPLOAD:
-                #splitted_input[1] = "client_dir/" + splitted_input[1]
-                f_size = os.path.getsize(splitted_input[1])
-                print ("file size: " + str(f_size))
+                if len(splitted_input) != 2:
+                    print("Wrong Arguments")
+                    continue
+                if not os.path.isfile(client_folder + splitted_input[1]):
+                    print (f'File "{client_folder + splitted_input[1]}" does not exist')
+                    continue 
+                #print ("exist")
+                f_size = os.path.getsize(client_folder + splitted_input[1])
                 splitted_input.append(str(f_size))
 
-            if command == Commands.DOWNLOAD:
-                print ("Started download")
+                send_command(s, command, splitted_input[1:len(splitted_input)])
+                ret_code,ret_args = recv_response(s)
 
-
-            send_command(s, command, splitted_input[1:len(splitted_input)])
-            ret_code,ret_args = recv_response(s)
-            print("Code: " + str(code))
-            print(ret_args)
-
-            # UPLOAD
-            if command == Commands.UPLOAD and ret_code == ResponseCodes.SUCCESS.value:
-                with open("client_dir/" + splitted_input[1], "rb") as file:
-                    buffer_size = 64 * 1024
+                if ret_code == ResponseCodes.ERROR.value:
+                    print (ret_code,ret_args)
+                    continue
+                with open(client_folder + splitted_input[1], "rb") as file:
+                    buffer_size = 64 * 1024    #?????????????????????????????????????????????????????????????????????????????????????????
                     while True:
+                        print(".", end='')
                         data = file.read(buffer_size)
                         if len(data) == 0: break
                         s.send(data)
-                        time.sleep(3)
-                        print("Sended")
+                        time.sleep(0.5)
+                    print('100%')
+                continue 
 
-            # DOWNLOAD
-            if command == Commands.DOWNLOAD and ret_code == ResponseCodes.SUCCESS.value:
-                filename = 'client_dir/' + splitted_input[1]
+            # --- DOWNLOAD ---
+            if command == Commands.DOWNLOAD:
+                #print ("Started download")
+                if len(splitted_input) != 2:
+                    print("Wrong Arguments")
+                    continue
+
+                send_command(s, command, splitted_input[1:len(splitted_input)])
+                ret_code,ret_args = recv_response(s)
+                #print("Code: " + str(code))
+                #print(ret_args)
+                if ret_code == ResponseCodes.ERROR.value:
+                    print(f'Error. File "{ret_args[0]}" {ret_args[1]}')
+                    continue                   
+                
+                filename = client_folder + splitted_input[1]
                 f_size = int(ret_args[0])
                 f_buff = int(ret_args[1])
 
                 with open(filename, 'wb') as file:
-                    # buffer_size = 64 * 1024
+                    #buffer_size = 64 * 1024
                     proccesed_bytes = 0
                     while proccesed_bytes < f_size:
+                        print(".", end='')
                         data = s.recv(f_buff)
                         proccesed_bytes = proccesed_bytes + len(data)
                         file.write(data)
-                        time.sleep(1)
-                        print("recv in downlaod")
-                    send_command(s, Commands.DOWNLOAD, [])
+                        time.sleep(0.5)
+                    print('100%')
+                    send_command(s, Commands.DOWNLOAD, []) #??????????????????????????????????????????????????????????????????????????/
         
         except socket.error as err:
             print(f'Error: {err}')
             exit = 1
         
-    # print ("File manager is closed")
+    #print ("File manager is closed")
