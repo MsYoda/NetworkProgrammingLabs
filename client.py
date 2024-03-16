@@ -64,7 +64,7 @@ def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: i
         time_start = time.time()
         data_size = proccesed_bytes
         while proccesed_bytes < f_size:
-            print(".", end='', flush=True) 
+            print(".", end='') # , flush=True) 
             data = s.recv(f_buff)
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
@@ -238,6 +238,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 filename = client_folder + splitted_input[1]
                 f_size = int(ret_args[0])
                 f_buff = int(ret_args[1])
+                print (f_buff)
 
                 download_file(filename, 'wb', 0, f_size, f_buff)
 

@@ -21,9 +21,9 @@ def recv(s: socket):
         data = packet[4*3:4*3+length]
 
         AN = AN + len(data)
-        prob = randint(0, 9)
+        prob = randint(0, 100)
 
-        if prob > 6:
+        if prob < 99:
             s.sendto(struct.pack(header_format, AN, SN, 0), address)
         else:
             print("ACK losted")
