@@ -4,13 +4,14 @@ import struct
 import time
 from datetime import datetime
 import os
+import traceback
 
 from commands import Commands, ResponseCodes
-from lib import recv, send
+from lib import recv, recv_large, send, send_large
 
 header_format = "I I I"
 
-HOST = "127.0.0.1"
+HOST = "192.168.100.66"
 PORT = 65432
 
 
@@ -28,18 +29,23 @@ def send_response(s : socket, addr, code : ResponseCodes, args : []):
     message = str(code.value) + '&' + '&'.join(args)
     send(s, addr, message.encode())
 
-def send_file(s, filename, filesize, offset = 0):
+def send_file(s, filename, filesize, addr, offset = 0):
+    recv_command(s)
     with open(filename, "rb") as file:
         file.seek(offset)
-        buffer_size = 64 * 1024
+        buffer_size = 64500 * 100
         proccesed_bytes = offset
         while True:
             data = file.read(buffer_size)
             if len(data) == 0: break
 
-            sended = conn.send(data)
-            if sended == 0: break
-            proccesed_bytes = proccesed_bytes + sended
+            #sended = conn.send(data)
+            send_large(conn, addr, data)
+
+            #conn.sendto(data, addr)
+
+            #if sended == 0: break
+            proccesed_bytes = proccesed_bytes + buffer_size
             #time.sleep(0.2)
 
     recv_command(conn)
@@ -52,7 +58,8 @@ def recv_file(s, filename, file_size, offset = 0):
     with open(filename, mode) as file:
         buffer_size = 64 * 1024
         while proccesed_bytes < file_size:
-            data = conn.recv(buffer_size)
+            #data = conn.recv(buffer_size)
+            data = recv_large(conn, buffer_size // 16, buffer_size)
             if (len(data) == 0): 
                 file.close()
                 raise ConnectionError('connection lost')
@@ -125,11 +132,42 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as conn:
             for file in os.listdir('server_files/'):
                 files.append(file)
             send_response(conn, addr, ResponseCodes.SUCCESS, files)
+            data = recv_large(conn, 5, 24)
+            print(f'Data from recv_large: {data}')
 
         if command == Commands.QUIT.value:
             print(f'QUIT from {username}')
             send_response(conn, addr, ResponseCodes.SUCCESS, [])
             break
+        
+        if command == Commands.DOWNLOAD.value:
+            try:
+                isUpload = False
+
+                filename = args[0]
+                file_size = os.path.getsize('server_files/' + filename)
+
+                print(f'DOWNLOAD {filename} from {username}')
+
+                send_response(conn, addr, ResponseCodes.SUCCESS, [str(file_size), str(64500 * 100)])
+                send_file(conn, 'server_files/' + filename, file_size, addr)
+
+                print(f'Server succesfully send file to {username}')
+            except (FileNotFoundError, FileExistsError) as e:
+                print(f'{username} caused {e} when try to download {filename}')
+                send_response(conn, ResponseCodes.ERROR, [filename, 'dont exsist'])
+                
+            except (ValueError, IndexError) as e:
+                print(f'{username} caused {e} when try to download {filename}')
+                send_response(conn, ResponseCodes.ERROR, ['bad arguments'])
+                
+            except ConnectionError as e:
+                print(f'{username} caused {e} when try to download {filename}') 
+                traceback.print_exc()
+            except Exception as e:
+                print(f'{username} caused {e} when try to download {filename}') 
+                traceback.print_exc()
+                
 
 
         #print(command)

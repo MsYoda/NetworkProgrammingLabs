@@ -6,7 +6,7 @@ import time
 from datetime import datetime 
 
 from commands import Commands
-from lib import recv, send
+from lib import recv, recv_large, send, send_large
 
 from commands import ResponseCodes
 TCP_KEEPALIVE = 16
@@ -14,7 +14,7 @@ TCP_KEEPALIVE = 16
 AN = 0
 SN = 0
 
-HOST = "127.0.0.1"
+HOST = "192.168.100.66"
 PORT = 65432
 client_folder = 'client_dir/'            
 
@@ -29,6 +29,7 @@ def recv_response(s : socket):
     response, addr = recv(s)
     response_parts = str(response, 'utf8').split('&')
     return int(response_parts[0]), response_parts[1:len(response_parts)]
+
 
 def get_code(command : str) -> Commands:
     #if command == 'HI':
@@ -47,7 +48,7 @@ def get_code(command : str) -> Commands:
         return Commands.LIST
 
 
-def upload_file(f_name: str, s: socket, seek_offset: int):
+def upload_file(f_name: str, s: socket, seek_offset: int, address):
     time_start = time.time()
     data_size = 0
     with open(f_name, "rb") as file:
@@ -57,14 +58,15 @@ def upload_file(f_name: str, s: socket, seek_offset: int):
             print(".", end='', flush=True)
             data = file.read(buffer_size)
             if len(data) == 0: break
-            s.send(data)
+            send_large(s, address, data, buffer_size // 16)
             data_size = data_size + len(data)
             # time.sleep(0.5)
         time_end = time.time()
         print (f'100% \nAverage Upload Speed:{(data_size/(time_end - time_start)/1000):.2f}KB/sec') 
 
 
-def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: int, f_buff: int):
+def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: int, f_buff: int, addr):
+    send_command(s, (HOST, PORT), Commands.DOWNLOAD, [])
     with open(filename, file_mode) as file:
         #buffer_size = 64 * 1024
         # proccesed_bytes = 0
@@ -72,12 +74,17 @@ def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: i
         data_size = proccesed_bytes
         while proccesed_bytes < f_size:
             print(".", end='') # , flush=True) 
-            data = s.recv(f_buff)
+
+            if f_size - proccesed_bytes < f_buff:
+                f_buff = f_size - proccesed_bytes
+
+            data = recv_large(s, f_buff, addr)
+
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
         time_end = time.time()
         print (f'100% \nAverage Download Speed:{((f_size - data_size)/(time_end - time_start)/1000):.2f}KB/sec')
-    send_command(s, Commands.DOWNLOAD, []) 
+    send_command(s, (HOST, PORT), Commands.DOWNLOAD, []) 
 
 
 
@@ -152,9 +159,33 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 continue
             send_command(s, (HOST,PORT), command, [])
             ret_code,ret_args = recv_response(s)
+            send_large(s, (HOST,PORT), b'01234567890abcdefuiop[]1', 5)
             for arg in ret_args:
                 print(f"- {arg}")
             continue
+
+        if command == Commands.DOWNLOAD:
+            #print ("Started download")
+            if len(splitted_input) != 2:
+                print("Wrong Arguments")
+                continue
+
+            send_command(s, (HOST, PORT), command, splitted_input[1:len(splitted_input)])
+            ret_code,ret_args = recv_response(s)
+            #print("Code: " + str(code))
+            #print(ret_args)
+            if ret_code == ResponseCodes.ERROR.value:
+                print(f'Error. File "{ret_args[0]}" {ret_args[1]}')
+                continue                   
+            
+            filename = client_folder + splitted_input[1]
+            f_size = int(ret_args[0])
+            f_buff = int(ret_args[1])
+            print (f_buff)
+
+            download_file(filename, 'wb', 0, f_size, f_buff, (HOST, PORT))
+
+
         
 
 
