@@ -145,6 +145,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             continue 
 
         # --- LIST ---
+        # После recv_response сделай send_large каких нибудь данных (блольших)
         if command == Commands.LIST:
             if len(splitted_input) > 1:
                 print("Wrong Arguments")

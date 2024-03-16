@@ -118,6 +118,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as conn:
             now = datetime.now().time()
             send_response(conn, addr, ResponseCodes.SUCCESS, [str(now.hour), str(now.minute), str(now.second)])
         
+        # После send_response сделай recv_large
         if command == Commands.LIST.value:
             print(f'LIST from {username}')
             files = []
