@@ -15,6 +15,7 @@ AN = 0
 SN = 0
 
 HOST = "192.168.100.66"
+#HOST = "127.0.0.1"
 PORT = 65432
 client_folder = 'client_dir/'            
 
@@ -70,20 +71,22 @@ def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: i
     with open(filename, file_mode) as file:
         #buffer_size = 64 * 1024
         # proccesed_bytes = 0
-        time_start = time.time()
+        all_time = 0
         data_size = proccesed_bytes
         while proccesed_bytes < f_size:
             print(".", end='') # , flush=True) 
 
             if f_size - proccesed_bytes < f_buff:
                 f_buff = f_size - proccesed_bytes
-
+                
+            start_time = time.time()
             data = recv_large(s, f_buff, addr)
+            all_time += time.time() - start_time
 
             proccesed_bytes = proccesed_bytes + len(data)
             file.write(data)
         time_end = time.time()
-        print (f'100% \nAverage Download Speed:{((f_size - data_size)/(time_end - time_start)/1000):.2f}KB/sec')
+        print (f'100% \nAverage Download Speed:{((f_size - data_size)/(all_time)/1000):.2f}KB/sec')
     send_command(s, (HOST, PORT), Commands.DOWNLOAD, []) 
 
 

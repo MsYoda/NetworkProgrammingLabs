@@ -11,7 +11,7 @@ from lib import recv, recv_large, send, send_large
 
 header_format = "I I I"
 
-HOST = "192.168.100.66"
+HOST = "127.0.0.1"
 PORT = 65432
 
 
