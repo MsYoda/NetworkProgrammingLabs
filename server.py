@@ -6,7 +6,7 @@ import time
 
 from commands import Commands, ResponseCodes
 
-HOST = "192.168.43.188"
+HOST = "192.168.43.138"
 PORT = 65432
 
 print("Hello! It a BSUIR network file manager server")
@@ -42,7 +42,7 @@ def send_file(s, filename, filesize, offset = 0):
             sended = conn.send(data)
             if sended == 0: break
             proccesed_bytes = proccesed_bytes + sended
-            #time.sleep(0.2)
+            time.sleep(0.04)
 
     recv_command(conn)
 
@@ -84,8 +84,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         conn, addr = s.accept()
         #conn.settimeout(5)
         TCP_KEEPALIVE = 16
-        conn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        conn.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 5000, 5000))  
+        #conn.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        #conn.ioctl(socket.SIO_KEEPALIVE_VALS, (1, 5000, 5000))  
         with conn:
             print(f"Connected by {addr}")
             while True:

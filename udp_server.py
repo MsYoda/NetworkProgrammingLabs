@@ -7,11 +7,12 @@ import os
 import traceback
 
 from commands import Commands, ResponseCodes
-from lib import recv, recv_large, send, send_large
+from lib import get_hi, print_an_sn, recv, recv_large, send, send_large
 
 header_format = "I I I"
 
-HOST = "127.0.0.1"
+HOST = "192.168.43.138"
+#HOST = '172.17.121.230'
 PORT = 65432
 
 
@@ -33,7 +34,7 @@ def send_file(s, filename, filesize, addr, offset = 0):
     recv_command(s)
     with open(filename, "rb") as file:
         file.seek(offset)
-        buffer_size = 64500 * 100
+        buffer_size = 65000 * 100
         proccesed_bytes = offset
         while True:
             data = file.read(buffer_size)
@@ -107,6 +108,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as conn:
             try:
                 print(f'Hi from {username}')
                 print('send_response')
+                # print_an_sn()
                 send_response(conn, addr, ResponseCodes.SUCCESS, [args[0]])
             except IndexError as e:
                 print(f'{username} caused {e} when retry to download {filename}')
@@ -138,7 +140,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as conn:
         if command == Commands.QUIT.value:
             print(f'QUIT from {username}')
             send_response(conn, addr, ResponseCodes.SUCCESS, [])
-            break
+            get_hi()
+            continue
         
         if command == Commands.DOWNLOAD.value:
             try:
@@ -149,7 +152,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as conn:
 
                 print(f'DOWNLOAD {filename} from {username}')
 
-                send_response(conn, addr, ResponseCodes.SUCCESS, [str(file_size), str(64500 * 100)])
+                send_response(conn, addr, ResponseCodes.SUCCESS, [str(file_size), str(65000 * 100)])
                 send_file(conn, 'server_files/' + filename, file_size, addr)
 
                 print(f'Server succesfully send file to {username}')
