@@ -11,10 +11,8 @@ from lib import recv, recv_large, send, send_large
 from commands import ResponseCodes
 TCP_KEEPALIVE = 16
 
-AN = 0
-SN = 0
 
-HOST = "192.168.100.66"
+HOST = "192.168.43.138"
 #HOST = "127.0.0.1"
 PORT = 65432
 client_folder = 'client_dir/'            
@@ -184,7 +182,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             filename = client_folder + splitted_input[1]
             f_size = int(ret_args[0])
             f_buff = int(ret_args[1])
-            print (f_buff)
 
             download_file(filename, 'wb', 0, f_size, f_buff, (HOST, PORT))
 
