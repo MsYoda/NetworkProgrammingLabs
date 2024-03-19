@@ -22,6 +22,7 @@ def recv(s: socket):
             continue
 
         if rSn < AN or length == 0:
+            s.sendto(struct.pack(header_format, AN, SN, 0), address)
             continue
 
         data = packet[4*3:4*3+length]
@@ -59,7 +60,7 @@ def send(s: socket, addr, data):
     s.settimeout(None)
     print(f'send: AN={AN} SN={SN}')
 
-def send_large(s: socket, addr, data, segment_size = 64500):
+def send_large(s: socket, addr, data, segment_size = 65000):
     global SN
     data_segments = math.ceil(len(data) / segment_size)
     not_sended_segmnets = list(range(0, data_segments))
@@ -69,23 +70,27 @@ def send_large(s: socket, addr, data, segment_size = 64500):
     while True:
         for i in not_sended_segmnets:
             segment = data[i * segment_size : i * segment_size + segment_size]
-            s.sendto(struct.pack(header_format, i, SN, 0) + segment, addr)
+            s.sendto(struct.pack(header_format, AN, SN, i) + segment, addr)
 
         r_data, addr = s.recvfrom(segment_size)
         rAN = r_data[:4]
+        rAn = int.from_bytes(rAN, byteorder = 'big')
+       # print(f'RECV AN: {rAn} | CUR SN {SN}')
         if (int.from_bytes(rAN, byteorder = 'big') > SN):
-            break
+           break
         r_data = r_data[4:]
         int_chunks = [r_data[i:i+4] for i in range(0, len(r_data), 4)]
         not_sended_segmnets = [int.from_bytes(chunk, byteorder='big') for chunk in int_chunks]
        # print(f'Not sended segmnets: {not_sended_segmnets}')
         if len(not_sended_segmnets) == 0: break
+
+    print('END SEND')
     SN += 1
        
 
 
 
-def recv_large(s: socket, data_length, addr, segment_size = 64500):
+def recv_large(s: socket, data_length, addr, segment_size = 65000):
     global AN
     recv_segmnets = {}
     not_recv_segmnets = []
@@ -94,17 +99,18 @@ def recv_large(s: socket, data_length, addr, segment_size = 64500):
     data_segments = math.ceil(data_length / segment_size)
 
     expected_segments = list(range(0, data_segments))
+    not_recv_segmnets = expected_segments
+
     timeout = 0.2
 
     recv_segmnets_len = 0
-    s.settimeout(0.3)
+    s.settimeout(0.2)
     while True:
         try:
             segmnet, addr = s.recvfrom(segment_size + 4*3)
-            #print('recvfrom')
-            sn, rSN, length = struct.unpack(header_format, segmnet[:4*3])
+            an, rSN, sn = struct.unpack(header_format, segmnet[:4*3])
             if rSN < AN:
-                print("Skip segments")
+                #print("Skip segments")
                 continue
 
             timeout -= 0.002
@@ -125,12 +131,22 @@ def recv_large(s: socket, data_length, addr, segment_size = 64500):
                 #print(f'actual_segments {actual_segments}')
                 #print(f'not rect segmnets {not_recv_segmnets}')
                 #print('Send not_recv_segmnets to server')
+            #print(f'Send AN: {AN}')
+
+            
             s.sendto(AN.to_bytes(4, 'big') + b''.join(x.to_bytes(4, 'big') for x in not_recv_segmnets), addr)
 
             if len(not_recv_segmnets) == 0: break
 
     s.settimeout(None)
     AN += 1
+   # print('ENd sending')
     return b''.join(segment for segment in recv_segmnets.values())
+
+def get_hi():
+    global AN 
+    global SN
+    AN = 0
+    SN = 0
 
 

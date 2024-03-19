@@ -71,8 +71,9 @@ def download_file(filename: str, file_mode: str, proccesed_bytes: int, f_size: i
         time_end = time.time()
         print (f'100% \nAverage Download Speed:{((f_size - data_size)/(time_end - time_start)/1000):.2f}KB/sec')
     send_command(s, Commands.DOWNLOAD, []) 
+    return 
 
-HOST = "192.168.43.188" #"127.0.0.1"
+HOST = "192.168.43.138"
 PORT = 65432
 client_folder = 'client_dir/'
 
@@ -188,6 +189,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 continue 
 
             # --- LIST ---
+            # После recv_response сделай send_large каких нибудь данных (блольших)
             if command == Commands.LIST:
                 if len(splitted_input) > 1:
                     print("Wrong Arguments")
@@ -196,6 +198,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 ret_code,ret_args = recv_response(s)
                 for arg in ret_args:
                     print(f"- {arg}")
+                    
                 continue
 
             # --- UPLOAD ---
