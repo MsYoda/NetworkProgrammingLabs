@@ -7,7 +7,7 @@ import os
 import traceback
 
 from commands import Commands, ResponseCodes
-from lib import get_hi, print_an_sn, recv, recv_large, send, send_large
+from lib import get_hi, recv, recv_large, send, send_large
 
 header_format = "I I I"
 
